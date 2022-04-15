@@ -16,6 +16,7 @@ namespace RatepAPI.Models
         public string Password { get; set; } = null!;
         public string FullName { get; set; } = null!;
         public string? Token { get; set; }
+        public string? Role { get; set; }
 
         public virtual ICollection<Client> Clients { get; set; }
         public virtual ICollection<Employee> Employees { get; set; }

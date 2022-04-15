@@ -10,6 +10,11 @@ namespace RatepAPI.Models
         public int Pauid { get; set; }
         public int Ammount { get; set; }
         public DateTime? CompletionDate { get; set; }
+        public bool IsChecked { get
+            {
+                return CompletionDate == null ? false : true;
+            } 
+        }
 
         public virtual Order Order { get; set; } = null!;
         public virtual PartAssemblyUnit Pau { get; set; } = null!;

@@ -2,6 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using RatepAPI.Models;
 using RatepAPI.Class;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace RatepAPI.Controllers
 {
@@ -9,38 +14,68 @@ namespace RatepAPI.Controllers
     [Route("[controller]")]
     public class UsersController : ControllerBase
     {
-        private readonly VeloRaContext _context;
+        public static VeloRaContext DBContext;
+        private IConfiguration _config;
 
-        public UsersController()
+        public UsersController(IConfiguration config)
         {
-            _context = new VeloRaContext();
+            _config = config;
+            DBContext = new VeloRaContext();
         }
 
-        [HttpPost("Login")]
-        public ActionResult<string> Login(string login, string password)
+        [AllowAnonymous]
+        [HttpPost]
+        public IActionResult Login(string CryptedLogin, string CryptedPassword)
         {
-            string CryptPassword = Security.StringToSHA256(password);
-            var user = _context.Users.FirstOrDefault(c => c.Login == login && c.Password == CryptPassword);
+            User user;
+            try
+            {
+                user = DBContext.Users.ToList().FirstOrDefault(c => Security.StringToSHA256(c.Login) == CryptedLogin
+                                                    && Security.StringToSHA256(c.Password) == CryptedPassword);
+            } catch (Exception ex)
+            {
+                return NotFound(404);
+            }
 
             if (user != null)
             {
-                string token = Security.GenerateToken(login, password);
+                string token = GenerateToken(user);
 
                 if (user.Token != token)
                 {
                     try
                     {
                         user.Token = token;
-                        _context.SaveChanges();
+                        DBContext.SaveChanges();
                     }
                     catch (Exception ex)
                     {
                         return NotFound(404);
                     }
                 }
-                return token;
+                return Ok(token);
             }
             return NotFound(405);
+        }
+
+        private string GenerateToken(User user)
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.FullName.Split(' ')[0]),
+                new Claim(ClaimTypes.Surname, user.FullName.Split(' ')[1]),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            var token = new JwtSecurityToken(_config["Jwt:Issuer"],
+                _config["Jwt:Audience"],
+                claims,
+                expires: DateTime.UtcNow.AddMinutes(15),
+                signingCredentials: credentials);
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

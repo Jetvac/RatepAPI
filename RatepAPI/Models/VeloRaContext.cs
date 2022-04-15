@@ -7,6 +7,7 @@ namespace RatepAPI.Models
 {
     public partial class VeloRaContext : DbContext
     {
+        public static string ConnectString = "Server=.\\SQLEXPRESS;Database=VeloRa;Trusted_Connection=True;";
         public VeloRaContext()
         {
         }
@@ -37,7 +38,7 @@ namespace RatepAPI.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server=.\\SQLEXPRESS;Database=VeloRa;Trusted_Connection=True;");
+                optionsBuilder.UseSqlServer(ConnectString);
             }
         }
 
