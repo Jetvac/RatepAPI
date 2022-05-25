@@ -7,13 +7,17 @@ namespace RatepAPI.Models
     {
         public Client()
         {
-            Contracts = new HashSet<Contract>();
+            LegalPeople = new HashSet<LegalPerson>();
+            NaturalPeople = new HashSet<NaturalPerson>();
+            Orders = new HashSet<Order>();
         }
 
         public int ClientId { get; set; }
-        public int AccountId { get; set; }
+        public string PhoneNumber { get; set; } = null!;
+        public string Email { get; set; } = null!;
 
-        public virtual User Account { get; set; } = null!;
-        public virtual ICollection<Contract> Contracts { get; set; }
+        public virtual ICollection<LegalPerson> LegalPeople { get; set; }
+        public virtual ICollection<NaturalPerson> NaturalPeople { get; set; }
+        public virtual ICollection<Order> Orders { get; set; }
     }
 }

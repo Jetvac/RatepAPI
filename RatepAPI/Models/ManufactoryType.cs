@@ -10,7 +10,7 @@ namespace RatepAPI.Models
             Manufactories = new HashSet<Manufactory>();
         }
 
-        public int Id { get; set; }
+        public int ManufactoryTypeId { get; set; }
         public string Name { get; set; } = null!;
 
         public virtual ICollection<Manufactory> Manufactories { get; set; }

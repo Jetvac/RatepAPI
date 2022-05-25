@@ -3,9 +3,10 @@ using System.Collections.Generic;
 
 namespace RatepAPI.Models
 {
-    public partial class Operation
+    public partial class VatViewFa
     {
-        public int CodeOperation { get; set; }
+        public int Vatid { get; set; }
         public string Name { get; set; } = null!;
+        public double Value { get; set; }
     }
 }

@@ -3,13 +3,8 @@ using System.Collections.Generic;
 
 namespace RatepAPI.Models
 {
-    public partial class Employee
+    public partial class EmployeeViewFa
     {
-        public Employee()
-        {
-            Orders = new HashSet<Order>();
-        }
-
         public int EmployeeId { get; set; }
         public string Seria { get; set; } = null!;
         public string Number { get; set; } = null!;
@@ -26,10 +21,10 @@ namespace RatepAPI.Models
             }
         }
 
-        public virtual User Account { get; set; } = null!;
+        public virtual User Account { get; set; }
         public virtual Manufactory? Manufactory { get; set; }
-        public virtual PassportDatum PassportDatum { get; set; } = null!;
-        public virtual Post Post { get; set; } = null!;
+        public virtual PassportDatum PassportDatum { get; set; }
+        public virtual Post Post { get; set; }
         public virtual ICollection<Order> Orders { get; set; }
     }
 }

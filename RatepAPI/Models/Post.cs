@@ -10,9 +10,11 @@ namespace RatepAPI.Models
             Employees = new HashSet<Employee>();
         }
 
-        public int CodePost { get; set; }
-        public string NamePost { get; set; } = null!;
+        public int PostId { get; set; }
+        public int? RoleId { get; set; }
+        public string Name { get; set; } = null!;
 
+        public virtual Role? Role { get; set; }
         public virtual ICollection<Employee> Employees { get; set; }
     }
 }

@@ -11,8 +11,9 @@ namespace RatepAPI.Controllers
         [HttpPost("ChangeConnectString")]
         public ActionResult<string> ChangeConnectString(string ServerName, string DBName)
         {
+            VeloRaContext DBContext = new VeloRaContext();
             VeloRaContext.ConnectString = $"Server={ServerName};Database={DBName};Trusted_Connection=True;";
-            UsersController.DBContext = new VeloRaContext();
+            DBContext = new VeloRaContext();
             return Ok();
         }
     }
