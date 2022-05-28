@@ -12,7 +12,9 @@ namespace RatepAPI.Models
         public int RoadMapStatusId { get; set; }
         public DateTime? CompletionDate { get; set; }
         public int Quantity { get; set; }
+        public int? EmployeeId { get; set; }
 
+        public virtual Employee? Employee { get; set; }
         public virtual Order Order { get; set; } = null!;
         public virtual PartAssemblyUnit Pau { get; set; } = null!;
         public virtual PartAssemblyUnit PauidcontainsNavigation { get; set; } = null!;

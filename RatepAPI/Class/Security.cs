@@ -20,14 +20,5 @@ namespace RatepAPI.Class
 
             return Sb.ToString();
         }
-
-        public static string GenerateToken(string login, string password)
-        {
-            string CryptLogin = StringToSHA256(login);
-            string CryptPassword = StringToSHA256(password);
-            string CryptDate = StringToSHA256(DateTime.Now.ToString("dd.MM.yyyy"));
-
-            return $"{CryptLogin}{CryptPassword}{CryptDate}";
-        }
     }
 }

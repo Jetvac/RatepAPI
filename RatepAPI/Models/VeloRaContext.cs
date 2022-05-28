@@ -63,6 +63,7 @@ namespace RatepAPI.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
                 optionsBuilder.UseSqlServer(ConnectString);
             }
         }
@@ -658,7 +659,14 @@ namespace RatepAPI.Models
 
                 entity.Property(e => e.CompletionDate).HasColumnType("datetime");
 
+                entity.Property(e => e.EmployeeId).HasColumnName("EmployeeID");
+
                 entity.Property(e => e.RoadMapStatusId).HasColumnName("RoadMapStatusID");
+
+                entity.HasOne(d => d.Employee)
+                    .WithMany(p => p.RoadMaps)
+                    .HasForeignKey(d => d.EmployeeId)
+                    .HasConstraintName("FK_RoadMap_Employee");
 
                 entity.HasOne(d => d.Order)
                     .WithMany(p => p.RoadMaps)

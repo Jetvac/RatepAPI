@@ -8,6 +8,7 @@ namespace RatepAPI.Models
         public Employee()
         {
             Orders = new HashSet<Order>();
+            RoadMaps = new HashSet<RoadMap>();
         }
 
         public int EmployeeId { get; set; }
@@ -31,5 +32,6 @@ namespace RatepAPI.Models
         public virtual PassportDatum PassportDatum { get; set; } = null!;
         public virtual Post Post { get; set; } = null!;
         public virtual ICollection<Order> Orders { get; set; }
+        public virtual ICollection<RoadMap> RoadMaps { get; set; }
     }
 }

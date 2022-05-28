@@ -107,6 +107,7 @@ namespace RatepAPI.Controllers
             try
             {
                 List<Client> clientsOrder = DBContext.Clients.ToList();
+                Employee employee = GetCurrentUser();
                 
 
                 foreach (Client client in clientsOrder)
@@ -137,8 +138,10 @@ namespace RatepAPI.Controllers
                         order.Employee.Account = null;
                         order.RoadMaps = null;
                         order.Client = null;
-                        order.OrderPositions = DBContext.OrderPositions.Where(c => c.OrderId == order.OrderId).ToList();
-                        order.RoadMaps = DBContext.RoadMaps.Where(c => c.OrderId == order.OrderId).ToList();
+                        order.OrderStatus = DBContext.OrderStatuses.FirstOrDefault(c => c.OrderStatusId == order.OrderStatusId);
+                        order.OrderStatus.Orders = null;
+                        order.OrderPositions = DBContext.OrderPositions.Where(c => c.OrderId == order.OrderId && c.ArticulNavigation.Manufactory.Name == employee.Manufactory.Name).ToList();
+                        order.RoadMaps = DBContext.RoadMaps.Where(c => c.OrderId == order.OrderId && c.PauidcontainsNavigation.Manufactory.Name == employee.Manufactory.Name).ToList();
 
 
                         foreach (OrderPosition position in order.OrderPositions)
@@ -153,7 +156,9 @@ namespace RatepAPI.Controllers
 
                         foreach (RoadMap roadMap in order.RoadMaps)
                         {
+
                             roadMap.Order = null;
+                            roadMap.Employee = roadMap.EmployeeId.Equals(null)? null : GetEmployee(Convert.ToInt32(roadMap.EmployeeId));
                             roadMap.PauidcontainsNavigation = DBContext.PartAssemblyUnits.FirstOrDefault(c => c.Articul == roadMap.Pauidcontains);
                             roadMap.PauidcontainsNavigation.Cost = DBContext.CostJournals.FirstOrDefault(c => c.CostId == roadMap.PauidcontainsNavigation.CostId);
                             roadMap.PauidcontainsNavigation.Cost.PartAssemblyUnits = null;
@@ -205,25 +210,88 @@ namespace RatepAPI.Controllers
             }
         }
 
+        [HttpGet("GetRoadMapStatuses")]
+        public IActionResult GetRoadMapStatuses()
+        {
+            VeloRaContext DBContext = new VeloRaContext();
+            List<RoadMapStatus> result = DBContext.RoadMapStatuses.ToList();
+            result.ForEach(c => { c.RoadMaps = null; });
+            return Ok(result);
+        }
+
         [HttpGet("GetEmployeeData")]
         [Authorize]
         public IActionResult GetEmployeeData()
         {
-            VeloRaContext DBContext = new VeloRaContext();
-            Employee employee = GetCurrentUser();
-            employee.Account = null;
-            employee.Manufactory = DBContext.Manufactories.FirstOrDefault(c => c.ManufactoryId == employee.ManufactoryId);
-            employee.Manufactory.PartAssemblyUnits = null;
-            employee.Manufactory.ManufactoryType = null;
-            employee.PassportDatum = DBContext.PassportData.FirstOrDefault(c => c.Seria == employee.Seria && c.Number == employee.Number);
-            employee.PassportDatum.Employees = null;
-            employee.Post = DBContext.Posts.FirstOrDefault(c => c.PostId == employee.PostId);
-            employee.Post.Employees = null;
-            employee.Post.Role = DBContext.Roles.FirstOrDefault(c => c.RoleId == employee.Post.RoleId);
-            employee.Post.Role.Posts = null;
-            employee.Orders = null;
+            Employee employee = GetEmployee(GetCurrentUser().EmployeeId);
             return Ok(employee);
         }
+
+        #region Master methods
+        [HttpGet("GetEmployeeListByManufactory")]
+        [Authorize(Roles = "Master")]
+        public IActionResult GetEmployeeListByManufactory()
+        {
+            VeloRaContext DBContext = new VeloRaContext();
+            Employee currentUser = GetEmployee(GetCurrentUser().EmployeeId);
+            List<Employee> employeeList = new List<Employee>();
+
+            foreach (Employee employee in DBContext.Employees.Where(c => c.ManufactoryId == currentUser.ManufactoryId && c.PostId == 1001))
+            {
+                employeeList.Add(GetEmployee(employee.EmployeeId));
+            }
+
+            return Ok(employeeList);
+        }
+
+        [HttpPost("SetResponsibleEmployee")]
+        [Authorize(Roles = "Master")]
+        public IActionResult SetResponsibleEmployee(int _orderId, int _posId, string _pauId, string _pauidcontains, int _employeeId)
+        {
+            VeloRaContext DBContext = new VeloRaContext();
+            try
+            {
+                Employee responsibleEmployee = DBContext.Employees.FirstOrDefault(c => c.EmployeeId == _employeeId);
+                RoadMap roadMap = DBContext.RoadMaps.FirstOrDefault(c => c.OrderId == _orderId
+                    && c.PosId == _posId
+                    && c.Pauid == _pauId
+                    && c.Pauidcontains == _pauidcontains);
+
+                roadMap.Employee = responsibleEmployee;
+                roadMap.RoadMapStatus = DBContext.RoadMapStatuses.FirstOrDefault(c => c.RoadMapStatusId == 1);
+                DBContext.SaveChanges();
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
+            return Ok();
+        }
+
+        [HttpPost("ClearResponsibleEmployee")]
+        [Authorize(Roles = "Master")]
+        public IActionResult ClearResponsibleEmployee(int _orderId, int _posId, string _pauId, string _pauidcontains)
+        {
+            VeloRaContext DBContext = new VeloRaContext();
+            try
+            {
+                RoadMap roadMap = DBContext.RoadMaps.FirstOrDefault(c => c.OrderId == _orderId
+                    && c.PosId == _posId
+                    && c.Pauid == _pauId
+                    && c.Pauidcontains == _pauidcontains);
+
+                DBContext.RoadMaps.Update(roadMap.Employee);
+                DBContext.Entry(roadMap).CurrentValues.SetValues(em);
+                roadMap.RoadMapStatus = DBContext.RoadMapStatuses.FirstOrDefault(c => c.RoadMapStatusId == 0);
+                DBContext.SaveChanges();
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
+            return Ok();
+        }
+        #endregion
 
         private Employee GetCurrentUser()
         {
@@ -240,6 +308,27 @@ namespace RatepAPI.Controllers
                 return result;
             }
             return null;
+        }
+
+        private Employee GetEmployee(int EmployeeId)
+        {
+            VeloRaContext DBContext = new VeloRaContext();
+            Employee employee = DBContext.Employees.FirstOrDefault(c => c.EmployeeId == EmployeeId);
+            employee.Account = null;
+            employee.Manufactory = DBContext.Manufactories.FirstOrDefault(c => c.ManufactoryId == employee.ManufactoryId);
+            employee.Manufactory.PartAssemblyUnits = null;
+            employee.Manufactory.ManufactoryType = null;
+            employee.Manufactory.Employees = null;
+            employee.PassportDatum = DBContext.PassportData.FirstOrDefault(c => c.Seria == employee.Seria && c.Number == employee.Number);
+            employee.PassportDatum.Employees = null;
+            employee.Post = DBContext.Posts.FirstOrDefault(c => c.PostId == employee.PostId);
+            employee.Post.Employees = null;
+            employee.Post.Role = DBContext.Roles.FirstOrDefault(c => c.RoleId == employee.Post.RoleId);
+            if (employee.Post.Role != null)
+                employee.Post.Role.Posts = null;
+            employee.Orders = null;
+            employee.RoadMaps = null;
+            return employee;
         }
     }
 }
