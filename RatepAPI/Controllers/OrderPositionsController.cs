@@ -13,91 +13,92 @@ namespace RatepAPI.Controllers
     public class OrderPositionsController : ControllerBase
     {
 
-        //[HttpPost("OpenOrderPosition")]
-        //public ActionResult<string> OpenOrderPosition(int OrderPositionID, string Token)
-        //{
-        //    User user;
-        //    Employee employee;
-        //    OrderPosition orderPosition;
-        //    Order order;
-        //    PartAssemblyUnit pau;
+        [HttpPost("OpenOrderPosition")]
+        [Authorize]
+        public ActionResult<string> OpenOrderPosition(int _orderId, int _posId, string _pauId, string _pauidcontains)
+        {
+            VeloRaContext DBContext = new VeloRaContext();
+            RoadMap roadMap = DBContext.RoadMaps.FirstOrDefault(c => c.OrderId == _orderId
+                    && c.PosId == _posId
+                    && c.Pauid == _pauId
+                    && c.Pauidcontains == _pauidcontains);
+            if (roadMap.RoadMapStatusId == 3)
+            {
+                roadMap.CompletionDate = null;
+                roadMap.RoadMapStatusId = 2;
+            }
+            if (roadMap.RoadMapStatusId == 2)
+                roadMap.RoadMapStatusId = 1;
+            try
+            {
+                DBContext.SaveChanges();
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
+            return Ok();
+        }
 
-        //    try
-        //    {
-        //        user = UsersController.DBContext.Users.FirstOrDefault(c => c.Token == Token);
-        //        employee = UsersController.DBContext.Employees.FirstOrDefault(c => c.AccountId == user.AccountId);
-        //        orderPosition = UsersController.DBContext.OrderPositions.FirstOrDefault(c => c.PosId == OrderPositionID);
-        //        order = UsersController.DBContext.Orders.FirstOrDefault(c => c.OrderPositions.Contains(orderPosition));
-        //        pau = UsersController.DBContext.PartAssemblyUnits.FirstOrDefault(c => c.OrderPositions.Where(c => c.PosId == OrderPositionID).Any());
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return NotFound(505);
-        //    }
+        [HttpPost("ChangeOrderState")]
+        [Authorize(Roles="Enginer")]
+        public IActionResult ChangeOrderState(int _orderId)
+        {
+            VeloRaContext DBContext = new VeloRaContext();
+            Order order = DBContext.Orders.FirstOrDefault(c => c.OrderId == _orderId);
+            switch(order.OrderStatusId)
+            {
+                case 0:
+                    order.OrderStatusId = 1001;
+                    break;
+                case 2:
+                    order.OrderStatusId = 4;
+                    order.CompletionDate = DateTime.Now;
+                    break;
+            }
 
-        //    if (orderPosition == null || user == null)
-        //        return NotFound(505);
-        //    if (employee.ManufactoryId != pau.ManufactoryId)
-        //    {
-        //        return BadRequest(504);
-        //    }
+            try
+            {
+                DBContext.SaveChanges();
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
+            return Ok(order.OrderStatusId);
+        }
 
-        //    try
-        //    {
-        //        orderPosition.CompletionDate = null;
-        //        order.CompletionDate = null;
-        //        UsersController.DBContext.SaveChanges();
-        //    }
-        //    catch
-        //    {
-        //        return NotFound(404);
-        //    }
-        //    return "1";
-        //}
-
-        //[HttpPost("CloseOrderPosition")]
-        //public ActionResult<string> CloseOrderPosition(int OrderPositionID, string Token)
-        //{
-        //    User user;
-        //    Employee employee;
-        //    OrderPosition orderPosition;
-        //    Order order;
-        //    PartAssemblyUnit pau;
-
-        //    try
-        //    {
-        //        user = UsersController.DBContext.Users.FirstOrDefault(c => c.Token == Token);
-        //        employee = UsersController.DBContext.Employees.FirstOrDefault(c => c.AccountId == user.AccountId);
-        //        orderPosition = UsersController.DBContext.OrderPositions.FirstOrDefault(c => c.PosId == OrderPositionID);
-        //        order = UsersController.DBContext.Orders.FirstOrDefault(c => c.OrderPositions.Contains(orderPosition));
-        //        pau = UsersController.DBContext.PartAssemblyUnits.FirstOrDefault(c => c.OrderPositions.Where(c => c.PosId == OrderPositionID).Any());
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return NotFound(505);
-        //    }
-
-
-        //    if (orderPosition == null || user == null)
-        //        return NotFound(505);
-        //    if (employee.ManufactoryId != pau.ManufactoryId)
-        //    {
-        //        return BadRequest(504);
-        //    }
-
-        //    try
-        //    {
-        //        orderPosition.CompletionDate = DateTime.Now;
-        //        if (UsersController.DBContext.OrderPositions.Where(c => c.OrderId == order.OrderId).Select(c => c.CompletionDate == null).Any())
-        //            order.CompletionDate = DateTime.Now;
-        //        UsersController.DBContext.SaveChanges();
-        //    }
-        //    catch
-        //    {
-        //        return NotFound(404);
-        //    }
-        //    return Ok(1);
-        //}
+        [HttpPost("CloseOrderPosition")]
+        [Authorize]
+        public IActionResult CloseOrderPosition(int _orderId, int _posId, string _pauId, string _pauidcontains)
+        {
+            VeloRaContext DBContext = new VeloRaContext();
+            RoadMap roadMap = DBContext.RoadMaps.FirstOrDefault(c => c.OrderId == _orderId
+                    && c.PosId == _posId
+                    && c.Pauid == _pauId
+                    && c.Pauidcontains == _pauidcontains);
+            Order order = DBContext.Orders.FirstOrDefault(c => c.OrderId == roadMap.OrderId);
+            if (roadMap.RoadMapStatusId == 1)
+                roadMap.RoadMapStatusId = 2;
+            else if (roadMap.RoadMapStatusId == 2)
+            {
+                roadMap.CompletionDate = DateTime.Now;
+                roadMap.RoadMapStatusId = 3;
+                int OrderPositionAmmount = DBContext.RoadMaps.Where(c => c.RoadMapStatusId != 3 && c.OrderId == order.OrderId).Count() - 1;
+                if (OrderPositionAmmount == 0)
+                {
+                    order.OrderStatusId = 2;
+                }
+            }
+            try
+            {
+                DBContext.SaveChanges();
+            } catch(Exception)
+            {
+                return BadRequest();
+            }
+            return Ok(order.OrderStatusId);
+        }
 
         [HttpGet("GetClientsOrderList")]
         [Authorize]
@@ -128,20 +129,15 @@ namespace RatepAPI.Controllers
 
                     foreach (Order order in client.Orders)
                     {
-                        order.Employee = DBContext.Employees.FirstOrDefault(c => c.EmployeeId == order.EmployeeId);
-                        order.Employee.Manufactory = DBContext.Manufactories.FirstOrDefault(c => c.ManufactoryId == order.Employee.ManufactoryId);
-                        order.Employee.Manufactory.Employees = null;
-                        order.Employee.Manufactory.PartAssemblyUnits = null;
-                        order.Employee.PassportDatum = null;
-                        order.Employee.Post = null;
-                        order.Employee.Orders = null;
-                        order.Employee.Account = null;
+                        order.Employee = GetEmployee(order.EmployeeId);
                         order.RoadMaps = null;
                         order.Client = null;
                         order.OrderStatus = DBContext.OrderStatuses.FirstOrDefault(c => c.OrderStatusId == order.OrderStatusId);
                         order.OrderStatus.Orders = null;
-                        order.OrderPositions = DBContext.OrderPositions.Where(c => c.OrderId == order.OrderId && c.ArticulNavigation.Manufactory.Name == employee.Manufactory.Name).ToList();
-                        order.RoadMaps = DBContext.RoadMaps.Where(c => c.OrderId == order.OrderId && c.PauidcontainsNavigation.Manufactory.Name == employee.Manufactory.Name).ToList();
+                        order.OrderPositions = DBContext.OrderPositions.Where(c => c.OrderId == order.OrderId).ToList();
+                        order.RoadMaps = DBContext.RoadMaps.Where(c => c.OrderId == order.OrderId).ToList();
+                        order.Vat = DBContext.Vats.FirstOrDefault(c => c.Vatid == order.Vatid);
+                        order.Vat.Orders = null;
 
 
                         foreach (OrderPosition position in order.OrderPositions)
@@ -219,6 +215,15 @@ namespace RatepAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("GetOrderStatuses")]
+        public IActionResult GetOrderStatuses()
+        {
+            VeloRaContext DBContext = new VeloRaContext();
+            List<OrderStatus> result = DBContext.OrderStatuses.ToList();
+            result.ForEach(c => { c.Orders = null; });
+            return Ok(result);
+        }
+
         [HttpGet("GetEmployeeData")]
         [Authorize]
         public IActionResult GetEmployeeData()
@@ -257,8 +262,8 @@ namespace RatepAPI.Controllers
                     && c.Pauid == _pauId
                     && c.Pauidcontains == _pauidcontains);
 
-                roadMap.Employee = responsibleEmployee;
-                roadMap.RoadMapStatus = DBContext.RoadMapStatuses.FirstOrDefault(c => c.RoadMapStatusId == 1);
+                roadMap.EmployeeId = responsibleEmployee.EmployeeId;
+                roadMap.RoadMapStatusId = 1;
                 DBContext.SaveChanges();
             }
             catch (Exception)
@@ -280,9 +285,8 @@ namespace RatepAPI.Controllers
                     && c.Pauid == _pauId
                     && c.Pauidcontains == _pauidcontains);
 
-                DBContext.RoadMaps.Update(roadMap.Employee);
-                DBContext.Entry(roadMap).CurrentValues.SetValues(em);
-                roadMap.RoadMapStatus = DBContext.RoadMapStatuses.FirstOrDefault(c => c.RoadMapStatusId == 0);
+                roadMap.EmployeeId = null;
+                roadMap.RoadMapStatusId = 0;
                 DBContext.SaveChanges();
             }
             catch (Exception)

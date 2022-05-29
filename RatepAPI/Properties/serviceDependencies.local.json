@@ -4,9 +4,9 @@
       "type": "secrets.user"
     },
     "mssql1": {
-      "secretStore": "LocalSecretsFile",
-      "type": "mssql.onprem",
-      "connectionId": "VeloRaEntities"
+      "ignored": "true",
+      "type": "mssql",
+      "connectionId": "ConnectionStrings:DatabaseConnection"
     }
   }
 }
